@@ -20,10 +20,12 @@ class GradeHelperWindow(QMainWindow):
 
     def __init__(self):
 
-        self.students = []
+        super().__init__()
+        self.student_ids = []
+        self.original_grades = []
+        self.corrected_grades = []
         self.sel_row = 0
 
-        super().__init__()
         self.setWindowTitle("Grade Helper")
         self.resize(720, 800)
         self.setMinimumSize(640, 680)
@@ -170,38 +172,45 @@ class GradeHelperWindow(QMainWindow):
         with open('grades.csv', 'r') as f:
             next(f)
             for line in f:
-                id, grade = line.strip().split(',')
-                self.students.append((int(id),int(grade),int(grade)))
-        for row, student in enumerate(self.students):
-                for col, value in enumerate(student):
-                    self.table.setItem(row,col,QTableWidgetItem(str(value)))
+                student_id, grade = line.strip().split(',')
+                self.student_ids.append(int(student_id))
+                self.original_grades.append(int(grade))
+                self.corrected_grades.append(int(grade))
+
+            student_all = []
+            for row in range(len(self.student_ids)):
+                student_all.append((self.student_ids[row],self.original_grades[row],self.original_grades[row]))
+        for row, values in enumerate(student_all):
+            for col, value in enumerate(values):
+                self.table.setItem(row, col, QTableWidgetItem(str(value)))
 
     def id_choose(self, row, col):
         self.sel_row = row
 
     def grade_updater1(self):
-        info = self.students[self.sel_row]
-        new_grade = info[2]+self.spin_bonus.value()
+        new_grade = self.corrected_grades[self.sel_row] + self.spin_bonus.value()
         if new_grade >= 100:
             new_grade = 100
-        self.students[self.sel_row] = (info[0], info[1], new_grade)
+        self.corrected_grades[self.sel_row] = new_grade
         self.table.setItem(self.sel_row, 2, QTableWidgetItem(str(new_grade)))
 
     def grade_updater2(self):
-        for s in range(len(self.students)):
-            info = self.students[s]
-            new_grade = info[2]+self.spin_bonus.value()
+        for s in range(len(self.corrected_grades)):
+            new_grade = self.corrected_grades[s] + self.spin_bonus.value()
             if new_grade >= 100:
                 new_grade = 100
-            self.students[s] = (info[0], info[1], new_grade)
+            self.corrected_grades[s] = new_grade
             self.table.setItem(s, 2, QTableWidgetItem(str(new_grade)))
 
     def saver(self):
         output_path = os.path.abspath('data_updated.csv')
         with open(output_path, 'w', encoding='utf-8', newline='') as f:
             f.write('ID, New Grade\n')
-            for student in range(len(self.students)):
-                f.write(f'{self.students[student][0]}, {self.students[student][2]}\n')
+            for student in range(len(self.student_ids)):
+                f.write(
+                    f'{self.student_ids[student]}, '
+                    f'{self.corrected_grades[student]}\n'
+                )
 
         QDesktopServices.openUrl(QUrl.fromLocalFile(output_path))
 
