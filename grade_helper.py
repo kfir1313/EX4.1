@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
+from About import AboutWindow
 
 class GradeHelperWindow(QMainWindow):
     
@@ -21,6 +22,7 @@ class GradeHelperWindow(QMainWindow):
         self.corrected_grades = []
         self.selected_file = ''
         self.sel_row = 0
+        self.about_window = None
 
         self.setWindowTitle("Grade Helper")
         self.resize(720, 800)
@@ -120,6 +122,7 @@ class GradeHelperWindow(QMainWindow):
         self.spin_bonus.setAlignment(Qt.AlignCenter)
         self.spin_bonus.setFixedHeight(34)
         self.spin_bonus.setFixedWidth(70)
+        self.spin_bonus.returnPressed.connect(self.grade_updater2)
 
         self.btn_spin_plus = QPushButton("+")
         self.btn_spin_plus.setObjectName("btn_stepper")
@@ -151,12 +154,26 @@ class GradeHelperWindow(QMainWindow):
         layout.addWidget(bonus_container)
 
         # --- Bottom action bar ---
+        action_layout = QHBoxLayout()
         self.btn_save = QPushButton("Save && Open in Excel")
         self.btn_save.setObjectName("btn_primary")
         self.btn_save.setCursor(Qt.PointingHandCursor)
         self.btn_save.setFixedHeight(42)
-        layout.addWidget(self.btn_save)
+        action_layout.addWidget(self.btn_save, 1)
         self.btn_save.clicked.connect(self.saver)
+
+        self.btn_about = QPushButton("About")
+        self.btn_about.setObjectName("btn_secondary")
+        self.btn_about.setCursor(Qt.PointingHandCursor)
+        self.btn_about.setFixedHeight(42)
+        self.btn_about.clicked.connect(self.show_about)
+        action_layout.addWidget(self.btn_about)
+
+        layout.addLayout(action_layout)
+
+    def show_about(self):
+        self.about_window = AboutWindow()
+        self.about_window.show()
 
     def spin_bonus_step_down(self):
         self.spin_bonus.stepDown()
@@ -200,15 +217,15 @@ class GradeHelperWindow(QMainWindow):
         self.sel_row = row
 
     def grade_updater1(self):
-        new_grade = self.corrected_grades[self.sel_row] + self.spin_bonus.value()
+        new_grade = self.original_grades[self.sel_row] + self.spin_bonus.value()
         if new_grade >= 100:
             new_grade = 100
         self.corrected_grades[self.sel_row] = new_grade
         self.table.setItem(self.sel_row, 2, QTableWidgetItem(str(new_grade)))
 
     def grade_updater2(self):
-        for s in range(len(self.corrected_grades)):
-            new_grade = self.corrected_grades[s] + self.spin_bonus.value()
+        for s in range(len(self.original_grades)):
+            new_grade = self.original_grades[s] + self.spin_bonus.value()
             if new_grade >= 100:
                 new_grade = 100
             self.corrected_grades[s] = new_grade
