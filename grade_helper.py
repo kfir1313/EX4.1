@@ -7,23 +7,19 @@ import os
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QTableWidget, QTableWidgetItem, QSpinBox, QLabel, QFrame,
-    QHeaderView, QAbstractItemView, QSizePolicy, QMessageBox,
+    QHeaderView, QAbstractItemView, QFileDialog,
 )
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 
-
-
 class GradeHelperWindow(QMainWindow):
-
     
-
     def __init__(self):
-
         super().__init__()
         self.student_ids = []
         self.original_grades = []
         self.corrected_grades = []
+        self.selected_file = ''
         self.sel_row = 0
 
         self.setWindowTitle("Grade Helper")
@@ -169,7 +165,23 @@ class GradeHelperWindow(QMainWindow):
         self.spin_bonus.stepUp()
 
     def load_file(self):
-        with open('grades.csv', 'r') as f:
+        selected_file, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select grades CSV",
+            "",
+            "CSV files (*.csv)",
+        )
+        if not selected_file:
+            return
+
+        self.selected_file = selected_file
+        self.file_label.setText(os.path.basename(self.selected_file))
+        self.student_ids.clear()
+        self.original_grades.clear()
+        self.corrected_grades.clear()
+        self.table.clearContents()
+
+        with open(self.selected_file, 'r') as f:
             next(f)
             for line in f:
                 student_id, grade = line.strip().split(',')
@@ -203,9 +215,9 @@ class GradeHelperWindow(QMainWindow):
             self.table.setItem(s, 2, QTableWidgetItem(str(new_grade)))
 
     def saver(self):
-        output_path = os.path.abspath('data_updated.csv')
+        output_path = os.path.abspath(self.selected_file)
         with open(output_path, 'w', encoding='utf-8', newline='') as f:
-            f.write('ID, New Grade\n')
+            f.write('ID, Grade\n')
             for student in range(len(self.student_ids)):
                 f.write(
                     f'{self.student_ids[student]}, '
