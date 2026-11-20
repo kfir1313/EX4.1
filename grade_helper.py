@@ -1,19 +1,28 @@
 """
-Grade Helper – PySide6 UI (layout only)
+Grade Helper – PySide6 UI
 """
 
 import sys
 import os
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QTableWidget, QSpinBox, QLabel, QFrame,
-    QHeaderView, QAbstractItemView, QSizePolicy,
+    QPushButton, QTableWidget, QTableWidgetItem, QSpinBox, QLabel, QFrame,
+    QHeaderView, QAbstractItemView, QSizePolicy, QMessageBox,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QDesktopServices
+
 
 
 class GradeHelperWindow(QMainWindow):
+
+    
+
     def __init__(self):
+
+        self.students = []
+        self.sel_row = 0
+
         super().__init__()
         self.setWindowTitle("Grade Helper")
         self.resize(720, 800)
@@ -59,7 +68,9 @@ class GradeHelperWindow(QMainWindow):
         self.btn_pick = QPushButton("Browse...")
         self.btn_pick.setObjectName("btn_secondary")
         self.btn_pick.setCursor(Qt.PointingHandCursor)
+        self.btn_pick.clicked.connect(self.load_file)
         file_layout.addWidget(self.btn_pick)
+
 
         layout.addWidget(file_container)
 
@@ -80,8 +91,10 @@ class GradeHelperWindow(QMainWindow):
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(True)
         table_layout.addWidget(self.table)
+        self.table.cellClicked.connect(self.id_choose)
 
         layout.addWidget(table_container, 1)
+
 
         # --- Bonus Controls Card ---
         bonus_container = QFrame()
@@ -126,11 +139,13 @@ class GradeHelperWindow(QMainWindow):
         self.btn_add_selected.setObjectName("btn_secondary")
         self.btn_add_selected.setCursor(Qt.PointingHandCursor)
         self.btn_add_selected.setToolTip("Add bonus points to selected rows only")
+        self.btn_add_selected.clicked.connect(self.grade_updater1)
 
         self.btn_add_all = QPushButton("Apply to All")
         self.btn_add_all.setObjectName("btn_secondary")
         self.btn_add_all.setCursor(Qt.PointingHandCursor)
         self.btn_add_all.setToolTip("Add bonus points to all students")
+        self.btn_add_all.clicked.connect(self.grade_updater2)
 
         bonus_layout.addWidget(self.btn_add_selected)
         bonus_layout.addWidget(self.btn_add_all)
@@ -143,12 +158,52 @@ class GradeHelperWindow(QMainWindow):
         self.btn_save.setCursor(Qt.PointingHandCursor)
         self.btn_save.setFixedHeight(42)
         layout.addWidget(self.btn_save)
+        self.btn_save.clicked.connect(self.saver)
 
     def spin_bonus_step_down(self):
         self.spin_bonus.stepDown()
 
     def spin_bonus_step_up(self):
         self.spin_bonus.stepUp()
+
+    def load_file(self):
+        with open('grades.csv', 'r') as f:
+            next(f)
+            for line in f:
+                id, grade = line.strip().split(',')
+                self.students.append((int(id),int(grade),int(grade)))
+        for row, student in enumerate(self.students):
+                for col, value in enumerate(student):
+                    self.table.setItem(row,col,QTableWidgetItem(str(value)))
+
+    def id_choose(self, row, col):
+        self.sel_row = row
+
+    def grade_updater1(self):
+        info = self.students[self.sel_row]
+        new_grade = info[2]+self.spin_bonus.value()
+        if new_grade >= 100:
+            new_grade = 100
+        self.students[self.sel_row] = (info[0], info[1], new_grade)
+        self.table.setItem(self.sel_row, 2, QTableWidgetItem(str(new_grade)))
+
+    def grade_updater2(self):
+        for s in range(len(self.students)):
+            info = self.students[s]
+            new_grade = info[2]+self.spin_bonus.value()
+            if new_grade >= 100:
+                new_grade = 100
+            self.students[s] = (info[0], info[1], new_grade)
+            self.table.setItem(s, 2, QTableWidgetItem(str(new_grade)))
+
+    def saver(self):
+        output_path = os.path.abspath('data_updated.csv')
+        with open(output_path, 'w', encoding='utf-8', newline='') as f:
+            f.write('ID, New Grade\n')
+            for student in range(len(self.students)):
+                f.write(f'{self.students[student][0]}, {self.students[student][2]}\n')
+
+        QDesktopServices.openUrl(QUrl.fromLocalFile(output_path))
 
 
 def load_stylesheet(app: QApplication):
@@ -157,6 +212,8 @@ def load_stylesheet(app: QApplication):
     if os.path.exists(qss_path):
         with open(qss_path, "r", encoding="utf-8") as f:
             app.setStyleSheet(f.read())
+
+
 
 
 def main():
