@@ -122,7 +122,7 @@ class GradeHelperWindow(QMainWindow):
         self.spin_bonus.setAlignment(Qt.AlignCenter)
         self.spin_bonus.setFixedHeight(34)
         self.spin_bonus.setFixedWidth(70)
-        self.spin_bonus.returnPressed.connect(self.grade_updater2)
+        self.spin_bonus.editingFinished.connect(self.grade_updater2)
 
         self.btn_spin_plus = QPushButton("+")
         self.btn_spin_plus.setObjectName("btn_stepper")
@@ -182,12 +182,25 @@ class GradeHelperWindow(QMainWindow):
         self.spin_bonus.stepUp()
 
     def load_file(self):
+        
         self.selected_file, _ = QFileDialog.getOpenFileName(
             self,
             "Select grades CSV",
             "",
             "CSV files (*.csv)",
         )
+
+        if not self.selected_file:
+            return
+
+        self.student_ids.clear()
+        self.original_grades.clear()
+        self.corrected_grades.clear()
+        self.table.clearContents()
+
+        self.sel_row = 0
+        self.file_label.setText(self.selected_file)
+
         with open(self.selected_file, 'r') as f:
             next(f)
             for line in f:
@@ -222,12 +235,12 @@ class GradeHelperWindow(QMainWindow):
             if new_grade >= 100:
                 new_grade = 100
             self.corrected_grades[s] = new_grade
-            self.update_table()
+        self.update_table()
 
     def saver(self):
         output_path = os.path.abspath(self.selected_file)
         with open(output_path, 'w', encoding='utf-8', newline='') as f:
-            next(f)
+            f.write('ID,Grade\n')
             for student in range(len(self.student_ids)):
                 f.write(
                     f'{self.student_ids[student]}, '
