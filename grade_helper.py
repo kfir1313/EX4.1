@@ -182,22 +182,12 @@ class GradeHelperWindow(QMainWindow):
         self.spin_bonus.stepUp()
 
     def load_file(self):
-        selected_file, _ = QFileDialog.getOpenFileName(
+        self.selected_file, _ = QFileDialog.getOpenFileName(
             self,
             "Select grades CSV",
             "",
             "CSV files (*.csv)",
         )
-        if not selected_file:
-            return
-
-        self.selected_file = selected_file
-        self.file_label.setText(os.path.basename(self.selected_file))
-        self.student_ids.clear()
-        self.original_grades.clear()
-        self.corrected_grades.clear()
-        self.table.clearContents()
-
         with open(self.selected_file, 'r') as f:
             next(f)
             for line in f:
@@ -205,10 +195,13 @@ class GradeHelperWindow(QMainWindow):
                 self.student_ids.append(int(student_id))
                 self.original_grades.append(int(grade))
                 self.corrected_grades.append(int(grade))
+        self.update_table()
 
-            student_all = []
-            for row in range(len(self.student_ids)):
-                student_all.append((self.student_ids[row],self.original_grades[row],self.original_grades[row]))
+    def update_table(self):
+        student_all = []
+        for row in range(len(self.student_ids)):
+            student_all.append((self.student_ids[row],self.original_grades[row],self.corrected_grades[row]))
+
         for row, values in enumerate(student_all):
             for col, value in enumerate(values):
                 self.table.setItem(row, col, QTableWidgetItem(str(value)))
@@ -221,20 +214,20 @@ class GradeHelperWindow(QMainWindow):
         if new_grade >= 100:
             new_grade = 100
         self.corrected_grades[self.sel_row] = new_grade
-        self.table.setItem(self.sel_row, 2, QTableWidgetItem(str(new_grade)))
+        self.update_table()
 
     def grade_updater2(self):
-        for s in range(len(self.original_grades)):
+        for s in range(len(self.student_ids)):
             new_grade = self.original_grades[s] + self.spin_bonus.value()
             if new_grade >= 100:
                 new_grade = 100
             self.corrected_grades[s] = new_grade
-            self.table.setItem(s, 2, QTableWidgetItem(str(new_grade)))
+            self.update_table()
 
     def saver(self):
         output_path = os.path.abspath(self.selected_file)
         with open(output_path, 'w', encoding='utf-8', newline='') as f:
-            f.write('ID, Grade\n')
+            next(f)
             for student in range(len(self.student_ids)):
                 f.write(
                     f'{self.student_ids[student]}, '
