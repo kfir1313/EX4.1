@@ -7,7 +7,7 @@ import os
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QTableWidget, QSpinBox, QLabel, QFrame,
-    QHeaderView, QAbstractItemView,
+    QHeaderView, QAbstractItemView, QSizePolicy,
 )
 from PySide6.QtCore import Qt
 
@@ -16,98 +16,139 @@ class GradeHelperWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Grade Helper")
-        self.setMinimumSize(680, 750)
+        self.resize(720, 800)
+        self.setMinimumSize(640, 680)
 
         # --- Central widget & main layout ---
         central = QWidget()
+        central.setObjectName("centralWidget")
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(14)
+        layout.setContentsMargins(28, 24, 28, 24)
+        layout.setSpacing(18)
 
-        # --- Title ---
-        self.title_label = QLabel("Grade Helper")
+        # --- Header section ---
+        header_layout = QVBoxLayout()
+        header_layout.setSpacing(4)
+
+        self.title_label = QLabel("Grade Management")
         self.title_label.setObjectName("title_label")
-        self.title_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.title_label)
+        header_layout.addWidget(self.title_label)
 
-        # --- Separator ---
-        sep1 = QFrame()
-        sep1.setObjectName("separator")
-        sep1.setFrameShape(QFrame.HLine)
-        layout.addWidget(sep1)
+        self.subtitle_label = QLabel("Select a grade sheet to view records, apply adjustments, and export.")
+        self.subtitle_label.setObjectName("subtitle_label")
+        header_layout.addWidget(self.subtitle_label)
 
-        # --- File picker row ---
-        file_row = QHBoxLayout()
-        file_row.setSpacing(10)
-        self.file_label = QLabel("No file selected")
+        layout.addLayout(header_layout)
+
+        # --- File selection card ---
+        file_container = QFrame()
+        file_container.setObjectName("file_card")
+        file_layout = QHBoxLayout(file_container)
+        file_layout.setContentsMargins(12, 10, 12, 10)
+        file_layout.setSpacing(12)
+
+        file_desc = QLabel("Source File:")
+        file_desc.setObjectName("field_label")
+        file_layout.addWidget(file_desc)
+
+        self.file_label = QLabel("No file selected — choose a CSV file to load")
         self.file_label.setObjectName("file_label")
-        self.btn_pick = QPushButton("📂  Pick File")
-        self.btn_pick.setObjectName("btn_pick")
-        file_row.addWidget(self.file_label, 1)
-        file_row.addWidget(self.btn_pick)
-        layout.addLayout(file_row)
+        file_layout.addWidget(self.file_label, 1)
 
-        # --- Table ---
+        self.btn_pick = QPushButton("Browse...")
+        self.btn_pick.setObjectName("btn_secondary")
+        self.btn_pick.setCursor(Qt.PointingHandCursor)
+        file_layout.addWidget(self.btn_pick)
+
+        layout.addWidget(file_container)
+
+        # --- Table Section ---
+        table_container = QFrame()
+        table_container.setObjectName("table_card")
+        table_layout = QVBoxLayout(table_container)
+        table_layout.setContentsMargins(1, 1, 1, 1)
+
         self.table = QTableWidget(50, 3)
-        self.table.setHorizontalHeaderLabels(["ID", "Original Grade", "Corrected Grade"])
+        self.table.setHorizontalHeaderLabels(["Student ID", "Original Grade", "Corrected Grade"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.horizontalHeader().setDefaultAlignment(Qt.AlignCenter)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.setAlternatingRowColors(True)
         self.table.verticalHeader().setVisible(False)
-        layout.addWidget(self.table)
+        self.table.setShowGrid(True)
+        table_layout.addWidget(self.table)
 
-        # --- Separator ---
-        sep2 = QFrame()
-        sep2.setObjectName("separator")
-        sep2.setFrameShape(QFrame.HLine)
-        layout.addWidget(sep2)
+        layout.addWidget(table_container, 1)
 
-        # --- Bonus controls ---
-        bonus_row = QHBoxLayout()
-        bonus_row.setSpacing(10)
+        # --- Bonus Controls Card ---
+        bonus_container = QFrame()
+        bonus_container.setObjectName("bonus_card")
+        bonus_layout = QHBoxLayout(bonus_container)
+        bonus_layout.setContentsMargins(16, 12, 16, 12)
+        bonus_layout.setSpacing(14)
+
         bonus_label = QLabel("Bonus Points:")
-        bonus_label.setStyleSheet("font-weight: 600;")
-        bonus_row.addWidget(bonus_label)
+        bonus_label.setObjectName("field_label")
+        bonus_layout.addWidget(bonus_label)
+
+        # Stepper group
+        stepper_layout = QHBoxLayout()
+        stepper_layout.setSpacing(4)
+
+        self.btn_spin_minus = QPushButton("−")
+        self.btn_spin_minus.setObjectName("btn_stepper")
+        self.btn_spin_minus.setCursor(Qt.PointingHandCursor)
+        self.btn_spin_minus.clicked.connect(self.spin_bonus_step_down)
 
         self.spin_bonus = QSpinBox()
         self.spin_bonus.setRange(-100, 100)
         self.spin_bonus.setValue(0)
         self.spin_bonus.setAlignment(Qt.AlignCenter)
-        self.spin_bonus.setMinimumWidth(70)
-        self.spin_bonus.setFixedHeight(36)
-
-        self.btn_spin_minus = QPushButton("−")
-        self.btn_spin_minus.setObjectName("btn_spin")
-        self.btn_spin_minus.clicked.connect(self.spin_bonus.stepDown)
+        self.spin_bonus.setFixedHeight(34)
+        self.spin_bonus.setFixedWidth(70)
 
         self.btn_spin_plus = QPushButton("+")
-        self.btn_spin_plus.setObjectName("btn_spin")
-        self.btn_spin_plus.clicked.connect(self.spin_bonus.stepUp)
+        self.btn_spin_plus.setObjectName("btn_stepper")
+        self.btn_spin_plus.setCursor(Qt.PointingHandCursor)
+        self.btn_spin_plus.clicked.connect(self.spin_bonus_step_up)
 
-        bonus_row.addWidget(self.btn_spin_minus)
-        bonus_row.addWidget(self.spin_bonus)
-        bonus_row.addWidget(self.btn_spin_plus)
+        stepper_layout.addWidget(self.btn_spin_minus)
+        stepper_layout.addWidget(self.spin_bonus)
+        stepper_layout.addWidget(self.btn_spin_plus)
 
-        bonus_row.addStretch()
+        bonus_layout.addLayout(stepper_layout)
+        bonus_layout.addStretch()
 
-        self.btn_add_selected = QPushButton("✚  Add to Selected")
-        self.btn_add_selected.setObjectName("btn_add_selected")
-        self.btn_add_selected.setToolTip("Apply bonus to selected rows only")
+        self.btn_add_selected = QPushButton("Apply to Selected")
+        self.btn_add_selected.setObjectName("btn_secondary")
+        self.btn_add_selected.setCursor(Qt.PointingHandCursor)
+        self.btn_add_selected.setToolTip("Add bonus points to selected rows only")
 
-        self.btn_add_all = QPushButton("✚  Add to All")
-        self.btn_add_all.setObjectName("btn_add_all")
-        self.btn_add_all.setToolTip("Apply bonus to every student")
+        self.btn_add_all = QPushButton("Apply to All")
+        self.btn_add_all.setObjectName("btn_secondary")
+        self.btn_add_all.setCursor(Qt.PointingHandCursor)
+        self.btn_add_all.setToolTip("Add bonus points to all students")
 
-        bonus_row.addWidget(self.btn_add_selected)
-        bonus_row.addWidget(self.btn_add_all)
-        layout.addLayout(bonus_row)
+        bonus_layout.addWidget(self.btn_add_selected)
+        bonus_layout.addWidget(self.btn_add_all)
 
-        # --- Save & open button ---
-        self.btn_save = QPushButton("💾  Save && Open in Excel")
-        self.btn_save.setObjectName("btn_save")
+        layout.addWidget(bonus_container)
+
+        # --- Bottom action bar ---
+        self.btn_save = QPushButton("Save && Open in Excel")
+        self.btn_save.setObjectName("btn_primary")
+        self.btn_save.setCursor(Qt.PointingHandCursor)
+        self.btn_save.setFixedHeight(42)
         layout.addWidget(self.btn_save)
+
+    def spin_bonus_step_down(self):
+        self.spin_bonus.stepDown()
+
+    def spin_bonus_step_up(self):
+        self.spin_bonus.stepUp()
 
 
 def load_stylesheet(app: QApplication):
